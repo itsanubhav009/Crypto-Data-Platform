@@ -18,7 +18,7 @@ const connectNATS = async () => {
     
     const options = {
       servers: servers,
-      timeout: 5000, // Connection timeout
+      timeout: 30000, // Connection timeout (increased to 30 seconds)
       reconnect: true, // Enable reconnection logic
       maxReconnectAttempts: -1, // Unlimited reconnection attempts
       reconnectTimeWait: 2000, // Wait 2 seconds between reconnect attempts
@@ -57,18 +57,24 @@ const getNatsConnection = () => {
 };
 
 /**
- * Publish a message to a NATS subject
- * @param {string} subject - Subject to publish to
- * @param {Object} data - Data to publish
+ * Publish an update event to NATS
  */
-const publishMessage = (subject, data) => {
+const publishUpdateEvent = async () => {
   try {
     const nc = getNatsConnection();
-    const jsonData = (typeof data === 'string') ? data : JSON.stringify(data);
-    nc.publish(subject, sc.encode(jsonData));
-    console.log(`Published message to ${subject}`);
+    
+    // Create the update event message
+    const updateEvent = {
+      trigger: 'update',
+      timestamp: new Date().toISOString()
+    };
+    
+    // Publish the message to the 'crypto.update' subject
+    nc.publish('crypto.update', sc.encode(JSON.stringify(updateEvent)));
+    
+    console.log('Update event published successfully');
   } catch (error) {
-    console.error(`Error publishing to ${subject}:`, error);
+    console.error('Error publishing update event:', error);
     throw error;
   }
 };
@@ -87,7 +93,6 @@ const closeNatsConnection = async () => {
 module.exports = { 
   connectNATS, 
   getNatsConnection, 
-  publishMessage, 
-  closeNatsConnection,
-  StringCodec: sc
+  publishUpdateEvent, 
+  closeNatsConnection
 };

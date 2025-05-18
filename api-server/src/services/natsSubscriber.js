@@ -1,4 +1,4 @@
-const { getNatsConnection, StringCodec: sc } = require('../config/nats');
+const { getNatsConnection } = require('../config/nats');
 const { storeCryptoStats } = require('../controllers/statsController');
 
 /**
@@ -12,12 +12,10 @@ const setupNatsSubscription = async () => {
     const subject = 'crypto.update';
     
     // Subscribe to the update events with a queue group
-    // Queue groups ensure that only one subscriber in the group receives each message
     const subscription = nc.subscribe(subject, { 
       queue: 'api-servers',  // Multiple API servers can form a queue group
-      max: 0,
-      noMux: true ,                // Unlimited messages (0 = unlimited)
-      timeout: 300000         // 30 second timeout for each message processing
+      max: 0,                // Unlimited messages
+      timeout: 0             // No timeout (fixes the timeout error)
     });
     
     console.log(`Subscribed to ${subject} events`);
@@ -26,8 +24,8 @@ const setupNatsSubscription = async () => {
     (async () => {
       for await (const msg of subscription) {
         try {
-          // Get the data and decode it
-          const data = JSON.parse(sc.decode(msg.data));
+          // Parse the data
+          const data = JSON.parse(new TextDecoder().decode(msg.data));
           const timestamp = new Date().toISOString();
           
           console.log(`[${timestamp}] Received update event:`, data);
@@ -46,7 +44,7 @@ const setupNatsSubscription = async () => {
       
       console.log('Subscription closed');
     })().catch(err => {
-      console.error('Subscription error:', err);
+      console.error('Subscription processing error:', err);
     });
     
     return subscription;

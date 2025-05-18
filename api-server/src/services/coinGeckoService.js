@@ -1,51 +1,45 @@
 const axios = require('axios');
 
-// CoinGecko API base URL
-const API_BASE_URL = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
-const API_KEY = process.env.COINGECKO_API_KEY;
-
 /**
- * Fetches cryptocurrency data from CoinGecko API
- * @param {string[]} coins - Array of coin IDs
- * @returns {Promise<Object>} - Coin data
+ * Get cryptocurrency data from CoinGecko API
+ * @returns {Promise<Array>} - Array of cryptocurrency data
  */
-const fetchCryptoData = async (coins) => {
+const getCryptoData = async () => {
   try {
-    // Configure request parameters
-    const params = {
-      vs_currency: 'usd',
-      ids: coins.join(','),
-      order: 'market_cap_desc',
-      per_page: 100,
-      page: 1,
-      sparkline: false,
-      price_change_percentage: '24h',
-    };
+    // Define coins to fetch
+    const coins = ['bitcoin', 'ethereum', 'matic-network'];
     
-    // Add API key to params if using query parameter method
-    // Uncomment the line below if you prefer using query parameter
-    // if (API_KEY) params.x_cg_demo_api_key = API_KEY;
+    // API URL for CoinGecko
+    // Using the /coins/markets endpoint which gives price, market cap, and 24h change
+    const url = 'https://api.coingecko.com/api/v3/coins/markets';
     
-    // Configure headers with API key (recommended method)
-    const headers = {};
-    if (API_KEY) {
-      headers['x-cg-demo-api-key'] = API_KEY;
-    }
-
-    // Using the /coins/markets endpoint which provides all the data we need in one request
-    const response = await axios.get(`${API_BASE_URL}/coins/markets`, {
-      params,
-      headers
+    // Make API request with parameters
+    const response = await axios.get(url, {
+      params: {
+        vs_currency: 'usd',        // Currency to compare against
+        ids: coins.join(','),      // Comma-separated list of coin IDs
+        order: 'market_cap_desc',  // Order by market cap (not required but useful)
+        per_page: 100,             // Results per page (max 100)
+        page: 1,                   // Page number
+        sparkline: false,          // No sparkline data needed
+        price_change_percentage: '24h' // Include 24h price change
+      },
+      timeout: 10000 // 10 second timeout
     });
-
-    return response.data;
+    
+    // Map the API response to our required format
+    return response.data.map(coin => ({
+      id: coin.id,
+      name: coin.name,
+      symbol: coin.symbol,
+      price: coin.current_price,
+      marketCap: coin.market_cap,
+      change24h: coin.price_change_percentage_24h
+    }));
   } catch (error) {
-    console.error('Error fetching data from CoinGecko:', error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}, Data:`, error.response.data);
-    }
-    throw new Error(`Failed to fetch cryptocurrency data: ${error.message}`);
+    console.error('Error fetching crypto data from CoinGecko:', error.message);
+    throw new Error('Failed to fetch cryptocurrency data');
   }
 };
 
-module.exports = { fetchCryptoData };
+module.exports = { getCryptoData };

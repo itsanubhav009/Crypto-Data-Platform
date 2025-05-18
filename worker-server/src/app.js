@@ -1,28 +1,24 @@
 require('dotenv').config();
 const { connectNATS, closeNatsConnection } = require('./config/nats');
-const { startScheduler } = require('./services/scheduler');
+const { initializeScheduler } = require('./services/scheduler');
 
-const PORT = process.env.PORT || 3001;
-const JOB_INTERVAL_MINUTES = parseInt(process.env.JOB_INTERVAL_MINUTES) || 15;
-
-// Global scheduler reference
+// Scheduler instance
 let scheduler = null;
 
 /**
- * Start the server and its components
+ * Start the worker server
  */
-const startServer = async () => {
+const startWorker = async () => {
   try {
-    console.log('Starting Crypto Worker Server...');
+    console.log('Starting worker server...');
     
     // Connect to NATS
     await connectNATS();
     
-    // Start the scheduler
-    scheduler = startScheduler(JOB_INTERVAL_MINUTES);
-    console.log(`Scheduler started with interval: ${JOB_INTERVAL_MINUTES} minutes`);
+    // Initialize the scheduler
+    scheduler = initializeScheduler();
     
-    console.log(`Worker Server running on port ${PORT}`);
+    console.log('Worker server started successfully');
   } catch (error) {
     console.error('Failed to start worker server:', error);
     await gracefulShutdown();
@@ -31,21 +27,19 @@ const startServer = async () => {
 };
 
 /**
- * Gracefully shut down the server
+ * Gracefully shut down the worker server
  */
 const gracefulShutdown = async () => {
-  console.log('Shutting down...');
+  console.log('Shutting down worker server...');
   
-  // Stop the scheduler if it's running
+  // Stop the scheduler
   if (scheduler) {
-    console.log('Stopping scheduler...');
     scheduler.stop();
-    scheduler = null;
+    console.log('Scheduler stopped');
   }
   
   // Close NATS connection
   try {
-    console.log('Closing NATS connection...');
     await closeNatsConnection();
   } catch (error) {
     console.error('Error closing NATS connection:', error);
@@ -70,8 +64,8 @@ process.on('SIGTERM', async () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Application specific logging, throwing an error, or other logic here
+  // Application specific logging
 });
 
-// Start the server
-startServer();
+// Start the worker server
+startWorker();

@@ -1,10 +1,11 @@
 /**
- * Calculate standard deviation of an array of numbers
- * @param {number[]} values - Array of numeric values
+ * Calculate the standard deviation of an array of numbers
+ * @param {Array<number>} values - Array of numeric values
  * @returns {number} - Standard deviation
  */
 const calculateStandardDeviation = (values) => {
-  if (!values || values.length === 0) {
+  // Check if array is empty
+  if (values.length === 0) {
     return 0;
   }
   
@@ -12,17 +13,17 @@ const calculateStandardDeviation = (values) => {
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
   
   // Calculate sum of squared differences from mean
-  const squaredDifferencesSum = values.reduce((sum, value) => {
-    const diff = value - mean;
-    return sum + (diff * diff);
-  }, 0);
+  const squaredDifferences = values.map(value => Math.pow(value - mean, 2));
+  const sumOfSquaredDifferences = squaredDifferences.reduce((sum, value) => sum + value, 0);
   
-  // Calculate variance and standard deviation
-  const variance = squaredDifferencesSum / values.length;
-  const stdDev = Math.sqrt(variance);
+  // Calculate variance (mean of squared differences)
+  const variance = sumOfSquaredDifferences / values.length;
+  
+  // Standard deviation is square root of variance
+  const stdDeviation = Math.sqrt(variance);
   
   // Round to 2 decimal places
-  return parseFloat(stdDev.toFixed(2));
+  return parseFloat(stdDeviation.toFixed(2));
 };
 
 module.exports = { calculateStandardDeviation };

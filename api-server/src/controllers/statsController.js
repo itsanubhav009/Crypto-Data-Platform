@@ -1,26 +1,30 @@
 const CryptoStats = require('../models/CryptoStats');
-const { fetchCryptoData } = require('../services/coinGeckoService');
+const { getCryptoData } = require('../services/coinGeckoService');
 const { calculateStandardDeviation } = require('../utils/mathUtils');
 
 /**
- * Fetches and stores cryptocurrency statistics in the database
+ * Store cryptocurrency statistics in the database
  */
 const storeCryptoStats = async () => {
   try {
-    const coins = ['bitcoin', 'ethereum', 'matic-network'];
-    const coinsData = await fetchCryptoData(coins);
+    console.log('Fetching cryptocurrency data from CoinGecko...');
+    // Change from fetchCryptoData to getCryptoData to match the exported function name
+    const cryptoData = await getCryptoData();
     
-    const statsToSave = coinsData.map(coin => ({
+    // Create array of documents to insert
+    const documents = cryptoData.map(coin => ({
       coin: coin.id,
-      price: coin.current_price,
-      marketCap: coin.market_cap,
-      change24h: coin.price_change_percentage_24h || 0,
+      price: coin.price,
+      marketCap: coin.marketCap,
+      change24h: coin.change24h,
+      timestamp: new Date()
     }));
     
-    await CryptoStats.insertMany(statsToSave);
-    console.log(`Stored stats for ${statsToSave.length} coins`);
+    // Insert documents into database
+    await CryptoStats.insertMany(documents);
     
-    return statsToSave;
+    console.log(`Successfully stored data for ${documents.length} cryptocurrencies`);
+    return { success: true, count: documents.length };
   } catch (error) {
     console.error('Error storing crypto stats:', error);
     throw error;
@@ -28,79 +32,67 @@ const storeCryptoStats = async () => {
 };
 
 /**
- * Get latest stats for a specific coin
+ * Get the latest stats for a specific cryptocurrency
+ * @param {string} coin - Cryptocurrency ID (bitcoin, ethereum, matic-network)
  */
-const getLatestStats = async (req, res) => {
+const getLatestStats = async (coin) => {
   try {
-    const { coin } = req.query;
-    
-    if (!coin) {
-      return res.status(400).json({ message: 'Coin parameter is required' });
-    }
-    
+    // Validate coin parameter
     if (!['bitcoin', 'ethereum', 'matic-network'].includes(coin)) {
-      return res.status(400).json({ 
-        message: 'Invalid coin. Supported coins: bitcoin, ethereum, matic-network' 
-      });
+      throw new Error('Invalid coin. Must be bitcoin, ethereum, or matic-network');
     }
     
-    // Get the latest entry for the requested coin
+    // Get the latest record for the specified coin
     const latestStats = await CryptoStats.findOne({ coin })
       .sort({ timestamp: -1 })
-      .lean();
+      .select('price marketCap change24h -_id');
     
     if (!latestStats) {
-      return res.status(404).json({ message: 'No stats found for this coin' });
+      throw new Error(`No data found for ${coin}`);
     }
     
-    // Format response according to the requirements
-    res.json({
+    return {
       price: latestStats.price,
       marketCap: latestStats.marketCap,
-      "24hChange": latestStats.change24h
-    });
+      '24hChange': latestStats.change24h
+    };
   } catch (error) {
-    console.error('Error getting latest stats:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error(`Error getting latest stats for ${coin}:`, error);
+    throw error;
   }
 };
 
 /**
- * Calculate standard deviation of price for the last 100 records
+ * Calculate the standard deviation of price for a specific cryptocurrency
+ * @param {string} coin - Cryptocurrency ID (bitcoin, ethereum, matic-network)
  */
-const getPriceDeviation = async (req, res) => {
+const getPriceDeviation = async (coin) => {
   try {
-    const { coin } = req.query;
-    
-    if (!coin) {
-      return res.status(400).json({ message: 'Coin parameter is required' });
-    }
-    
+    // Validate coin parameter
     if (!['bitcoin', 'ethereum', 'matic-network'].includes(coin)) {
-      return res.status(400).json({ 
-        message: 'Invalid coin. Supported coins: bitcoin, ethereum, matic-network' 
-      });
+      throw new Error('Invalid coin. Must be bitcoin, ethereum, or matic-network');
     }
     
-    // Get the last 100 records for the requested coin
+    // Get the last 100 records for the specified coin
     const records = await CryptoStats.find({ coin })
       .sort({ timestamp: -1 })
       .limit(100)
-      .select('price')
-      .lean();
+      .select('price -_id');
     
     if (records.length === 0) {
-      return res.status(404).json({ message: 'No stats found for this coin' });
+      throw new Error(`No data found for ${coin}`);
     }
     
-    // Extract prices and calculate standard deviation
+    // Extract prices from records
     const prices = records.map(record => record.price);
+    
+    // Calculate standard deviation
     const deviation = calculateStandardDeviation(prices);
     
-    res.json({ deviation });
+    return { deviation };
   } catch (error) {
-    console.error('Error calculating price deviation:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error(`Error calculating deviation for ${coin}:`, error);
+    throw error;
   }
 };
 

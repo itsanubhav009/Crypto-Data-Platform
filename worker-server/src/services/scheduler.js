@@ -1,64 +1,33 @@
 const cron = require('node-cron');
-const { publishMessage } = require('../config/nats');
+const { publishUpdateEvent } = require('../config/nats');
 
 /**
- * Start the scheduler to publish events at regular intervals
- * @param {number} intervalMinutes - Interval in minutes
+ * Initialize the scheduler for crypto update events
  */
-const startScheduler = (intervalMinutes = 15) => {
-  // Validate interval
-  if (intervalMinutes < 1) {
-    console.error('Invalid interval. Using default of 15 minutes.');
-    intervalMinutes = 15;
-  }
-  
-  // Create cron expression for the given interval (e.g., "*/15 * * * *" for every 15 minutes)
-  const cronExpression = `*/${intervalMinutes} * * * *`;
-  
-  console.log(`Scheduling job to run every ${intervalMinutes} minutes (${cronExpression})`);
-  
-  // Schedule the job
-  const job = cron.schedule(cronExpression, async () => {
-    try {
-      await publishUpdateEvent();
-    } catch (error) {
-      console.error('Error publishing update event:', error);
-    }
-  });
-  
-  // Run the job immediately on startup
-  publishUpdateEvent().catch(error => {
-    console.error('Error publishing initial update event:', error);
-  });
-  
-  return job;
-};
-
-/**
- * Publish an update event to NATS
- */
-const publishUpdateEvent = async () => {
+const initializeScheduler = () => {
   try {
-    const subject = 'crypto.update';
-    const timestamp = new Date().toISOString();
+    console.log('Initializing scheduler...');
     
-    const message = {
-      trigger: 'update',
-      timestamp: timestamp,
-      source: 'worker-scheduler'
-    };
+    // Schedule job to run every 15 minutes
+    // Cron format: minute hour day month day-of-week
+    const scheduledTask = cron.schedule('*/15 * * * *', async () => {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Running scheduled crypto update job`);
+      
+      await publishUpdateEvent();
+    });
     
-    console.log(`[${timestamp}] Publishing update event to ${subject}`);
+    console.log('Scheduler initialized successfully');
     
-    // Publish the message to the crypto.update subject
-    publishMessage(subject, message);
+    // Publish an initial update event on startup
+    console.log('Publishing initial update event...');
+    publishUpdateEvent();
     
-    console.log(`[${timestamp}] Update event published successfully`);
-    return true;
+    return scheduledTask;
   } catch (error) {
-    console.error(`Error publishing update event: ${error.message}`);
+    console.error('Error initializing scheduler:', error);
     throw error;
   }
 };
 
-module.exports = { startScheduler, publishUpdateEvent };
+module.exports = { initializeScheduler };
