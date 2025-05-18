@@ -1,15 +1,12 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm install
 
 COPY . .
 
-ENV NODE_ENV=production
-ENV PORT=8080
-
 EXPOSE 8080
 
-CMD ["node", "src/server.js"]
+CMD ["npm", "start"]

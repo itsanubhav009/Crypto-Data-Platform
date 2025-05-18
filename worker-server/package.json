@@ -1,19 +1,12 @@
 {
   "name": "worker-server",
   "version": "1.0.0",
-  "description": "Worker server for scheduled cryptocurrency data updates",
+  "description": "Worker server for KoinX assignment",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/app.js"
   },
   "dependencies": {
-    "dotenv": "^16.0.3",
-    "nats": "^2.13.1",
-    "node-cron": "^3.0.2"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.22"
+    "nats": "^2.11.0"
   }
 }
