@@ -1,8 +1,8 @@
-# Worker Server - KoinX Crypto Data Platform
+# Worker Server -   Crypto Data Platform
 
 ## Overview
 
-This Worker Server is a background processing component of the KoinX Crypto Data Platform. Its primary responsibility is to periodically trigger data refresh cycles for various cryptocurrencies. It achieves this by publishing messages to a NATS server, signaling the API Server to fetch and update its data from external sources like CoinGecko.
+This Worker Server is a background processing component of the   Crypto Data Platform. Its primary responsibility is to periodically trigger data refresh cycles for various cryptocurrencies. It achieves this by publishing messages to a NATS server, signaling the API Server to fetch and update its data from external sources like CoinGecko.
 
 This service is designed to be triggered by a scheduler (like GCP Cloud Scheduler) but also provides a manual trigger endpoint for development and testing.
 
@@ -35,7 +35,7 @@ This service is designed to be triggered by a scheduler (like GCP Cloud Schedule
 1.  **Clone the repository (if not already done):**
     ```bash
     git clone <your-repo-url>
-    cd KoinX--Backend-Assignment/worker-server
+    cd  --Backend-Assignment/worker-server
     ```
 
 2.  **Install dependencies:**
